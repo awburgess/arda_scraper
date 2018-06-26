@@ -9,6 +9,7 @@ from random import randint
 import config
 
 import requests
+import pandas as pd
 import geopandas as gpd
 from arcgis2geojson import arcgis2geojson
 import geojson
@@ -16,6 +17,7 @@ import geojson
 _LOGGER = logging.basicConfig(level=logging.INFO)
 
 _COUNTY_FILE = Path(__file__).parent / config.COUNTIES_PATH
+_FIPS_FILE = Path(__file__).parent / config.STATE_FIPS_XWALK
 
 
 def acquire_esri_geojson(url: str) -> Dict[str, Union[int, float, str, None]]:
@@ -77,12 +79,28 @@ def create_get_urls(county_gdf: gpd.GeoDataFrame) -> List[str]:
     return urls
 
 
-def create_feature_collection(urls: List[str]) -> Dict[str, Union[int, str, float, None]]:
+def get_state_fips(state_abbrev: str) -> str:
+    """
+    Load state to fips crosswalk and look up value
+
+    Args:
+        state_abbrev: Two character representation of state
+
+    Returns:
+        The FIPS code for the given state
+    """
+    fips_state_df = pd.read_csv(_FIPS_FILE, dtype={'fips_code': str})
+    return fips_state_df[fips_state_df['state_abbrev'] == state_abbrev].iloc[0].fips_code
+
+
+def create_feature_collection(urls: List[str],
+                              state_abbrev: str) -> Dict[str, Union[int, str, float, None]]:
     """
     Create GeoJSON Feature collection from all formatted urls
 
     Args:
         urls: List of formatted URLs for ESRI ARDA Endpoints
+        state_abbrev: Two character state abbreviation
 
     Returns:
         GeoJSON Feature collection as dict
@@ -91,7 +109,7 @@ def create_feature_collection(urls: List[str]) -> Dict[str, Union[int, str, floa
     for url in urls:
         esri_geojson = acquire_esri_geojson(url)
         features = convert_esri_to_geojson_features(esri_geojson)
-        all_features += features
+        all_features += [f for f in features if f['properties']['STATE'] == state_abbrev]
         time.sleep(randint(2, 6))
 
     return geojson.FeatureCollection(all_features)
@@ -104,18 +122,24 @@ def main():
 
     """
     parser = argparse.ArgumentParser(description="Get GeoJSON for all churches from a given state FIPS from ARDA")
-    parser.add_argument('state_fips', type=str, help="Needs to be a valid state FIPS code")
+    parser.add_argument('state_abbrev', type=str, help="Needs to be a valid two character state code")
     parser.add_argument('output_file', type=str, help="File location to write the output (WILL OVERWRITE)")
     args = parser.parse_args()
 
+    state_abbrev = args.state_abbrev.upper()
+
+    logging.info('Looking up state FIPS code')
+    state_fips = get_state_fips(state_abbrev)
+    logging.info("State FIPS code is %s" % state_fips)
+
     logging.info("Acquiring U.S. county bounding boxes")
-    bounding_boxes_gdf = get_county_bounding_boxes(args.state_fips)
+    bounding_boxes_gdf = get_county_bounding_boxes(state_fips)
 
     logging.info("Formatting urls for your given state FIPS")
     formatted_urls = create_get_urls(bounding_boxes_gdf)
 
     logging.info("Acquiring and creating GeoJSON")
-    geojson_of_all_responses = create_feature_collection(formatted_urls)
+    geojson_of_all_responses = create_feature_collection(formatted_urls, state_abbrev)
 
     logging.info("Serializing GeoJSON")
     with open(args.output_file, 'w') as outfile:
