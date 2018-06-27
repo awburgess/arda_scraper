@@ -1,4 +1,4 @@
-# Arda Scraper
+# ARDA Scraper
 Tooling for acquiring church location and details from the Association of Religion Data Archives
 
 ### Objective
