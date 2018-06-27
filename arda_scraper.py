@@ -1,3 +1,7 @@
+"""
+CLI tool for acquiring church location geojson data from ARDA web app
+"""
+
 import json
 import argparse
 from typing import Dict, List, Union
@@ -6,15 +10,15 @@ import logging
 import time
 from random import randint
 
-import config
-
 import requests
 import pandas as pd
 import geopandas as gpd
 from arcgis2geojson import arcgis2geojson
 import geojson
 
-_LOGGER = logging.basicConfig(level=logging.INFO)
+import config
+
+logging.basicConfig(level=logging.INFO)
 
 _COUNTY_FILE = Path(__file__).parent / config.COUNTIES_PATH
 _FIPS_FILE = Path(__file__).parent / config.STATE_FIPS_XWALK
@@ -30,21 +34,24 @@ def acquire_esri_geojson(url: str) -> Dict[str, Union[int, float, str, None]]:
     Returns:
         Dictionary representation of ESRI's geojson response
     """
-    r = requests.get(url, headers={'user-agent': config.USER_AGENT})
-    return r.json()
+    request = requests.get(url, headers={'user-agent': config.USER_AGENT})
+    return request.json()
 
 
-def convert_esri_to_geojson_features(geojson: Dict[str, Union[int, float, str, None]]) -> List[dict]:
+def convert_esri_to_geojson_features(geojson_dict: Dict[str, Union[int,
+                                                                   float,
+                                                                   str,
+                                                                   None]]) -> List[dict]:
     """
     Take ESRI GeoJSON response as dict and convert to standard GeoJSON features
 
     Args:
-        geojson: ESRI GeoJSON as dict
+        geojson_dict: ESRI GeoJSON as dict
 
     Returns:
         Standard GeoJSON as list of features
     """
-    features = geojson['features']
+    features = geojson_dict['features']
     return [arcgis2geojson(feature) for feature in features]
 
 
@@ -75,7 +82,8 @@ def create_get_urls(county_gdf: gpd.GeoDataFrame) -> List[str]:
     """
     urls = []
     for index, row in county_gdf.iterrows():
-        urls.append(config.ARDA_ESRI_REST_ENDPOINT.format(xmin=row.minx, ymin=row.miny, xmax=row.maxx, ymax=row.maxy))
+        urls.append(config.ARDA_ESRI_REST_ENDPOINT.format(xmin=row.minx, ymin=row.miny,
+                                                          xmax=row.maxx, ymax=row.maxy))
     return urls
 
 
@@ -117,13 +125,16 @@ def create_feature_collection(urls: List[str],
 
 def main():
     """
-    Iterate over bounding boxes, convert each ESRI GeoJSON response, and return a GeoJSON feature collection from all
-    responses
+    Iterate over bounding boxes, convert each ESRI GeoJSON response,
+    and return a GeoJSON feature collection from all responses
 
     """
-    parser = argparse.ArgumentParser(description="Get GeoJSON for all churches from a given state FIPS from ARDA")
-    parser.add_argument('state_abbrev', type=str, help="Needs to be a valid two character state code")
-    parser.add_argument('output_file', type=str, help="File location to write the output (WILL OVERWRITE)")
+    parser = argparse.ArgumentParser(description="Get GeoJSON for all churches from "
+                                                 "a given state FIPS from ARDA")
+    parser.add_argument('state_abbrev', type=str, help="Needs to be a valid two"
+                                                       " character state code")
+    parser.add_argument('output_file', type=str, help="File location to write the "
+                                                      "output (WILL OVERWRITE)")
     args = parser.parse_args()
 
     state_abbrev = args.state_abbrev.upper()
