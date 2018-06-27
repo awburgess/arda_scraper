@@ -7,7 +7,7 @@ Allow users to collect attributes and geometry of church locations as GeoJSON
 
 ### Installation
 
-Requires Python3.5+
+Requires ```Python 3.5+```
 
 First you need to unzip ```data/us_counties.zip``` to the ```data``` directory
 
