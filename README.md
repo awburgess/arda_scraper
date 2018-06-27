@@ -7,6 +7,10 @@ Allow users to collect attributes and geometry of church locations
 
 ### Installation
 
+First you need to unzip ```data/us_counties.zip``` to the ```data``` directory
+
+Next, install the requirements.
+
 ```bash
 (my_venv) $ pip install -r requirements.txt
 ```
