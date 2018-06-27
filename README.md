@@ -7,6 +7,8 @@ Allow users to collect attributes and geometry of church locations
 
 ### Installation
 
+Requires Python3.5+
+
 First you need to unzip ```data/us_counties.zip``` to the ```data``` directory
 
 Next, install the requirements.
