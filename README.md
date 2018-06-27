@@ -3,7 +3,7 @@ Tooling for acquiring church location and details from the Association of Religi
 
 ### Objective
 
-Allow users to collect attributes and geometry of church locations
+Allow users to collect attributes and geometry of church locations as GeoJSON
 
 ### Installation
 
